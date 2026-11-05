@@ -1,0 +1,10 @@
+.env
+__pycache__/
+audio/
+calls/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+.idea/
+*.iml
