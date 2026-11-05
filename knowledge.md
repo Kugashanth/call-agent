@@ -14,5 +14,11 @@
 - Projects / freelance work: Kathir builds data science, machine learning and AI projects. Ask the caller to leave their name, the project topic and deadline.
 - University group work: take the caller's name and which subject or assignment it is about.
 
+## Questions to ask
+- Caller's name
+- Reason for the call
+- Best number and time to call back
+- Is it urgent?
+
 ## Do NOT share
 - Home address, family details, other phone numbers, or anything not written above.

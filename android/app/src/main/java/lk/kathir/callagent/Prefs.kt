@@ -47,6 +47,10 @@ object Prefs {
             .apply()
     }
 
+    /** Newest call start time (epoch s) already notified about. */
+    fun lastSeen(c: Context): Long = sp(c).getLong("last_seen", 0L)
+    fun setLastSeen(c: Context, v: Long) { sp(c).edit().putLong("last_seen", v).apply() }
+
     fun saveServer(c: Context, url: String, key: String) {
         sp(c).edit().putString("url", url.trim()).putString("key", key.trim()).apply()
     }

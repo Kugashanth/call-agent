@@ -12,3 +12,4 @@ dist/
 *.jks
 *.keystore
 keystore.properties
+recordings/

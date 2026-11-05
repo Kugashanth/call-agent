@@ -23,6 +23,7 @@ import config
 import conversation
 import dashboard
 import phone
+import recording
 import speech
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -61,11 +62,13 @@ async def twilio_form(request: Request) -> dict:
     return form
 
 
-async def play(vr: VoiceResponse, text: str, lang: str) -> None:
+async def play(vr: VoiceResponse, text: str, lang: str, call: dict | None = None) -> None:
     """Play Azure TTS audio; fall back to Twilio's built-in English voice if TTS fails."""
     try:
         name = await run_in_threadpool(speech.synthesize, text, lang)
         vr.play(url(f"/audio/{name}"))
+        if call is not None:
+            recording.add_segment(call, speech.AUDIO_DIR / name)   # agent's voice in the recording
     except Exception:
         log.exception("TTS failed")
         vr.say("Sorry, please hold on." if lang != "en" else text)
@@ -99,7 +102,7 @@ def download_recording(rec_url: str) -> str:
 
 async def respond_twiml(call: dict, result: dict) -> Response:
     vr = VoiceResponse()
-    await play(vr, result["say"], result["lang"])
+    await play(vr, result["say"], result["lang"], call)
     if result["end"]:
         vr.hangup()
         conversation.finalize(call["sid"])
@@ -116,7 +119,7 @@ async def voice(request: Request):
     log.info("Incoming Twilio call %s from %s", call["sid"], conversation.mask_number(call["from"]))
     vr = VoiceResponse()
     for lang in config.GREETING_ORDER:
-        await play(vr, config.text(lang, "greeting"), lang)
+        await play(vr, config.text(lang, "greeting"), lang, call)
     listen(vr)
     return xml(vr)
 

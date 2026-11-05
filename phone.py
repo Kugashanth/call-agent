@@ -17,6 +17,7 @@ from starlette.concurrency import run_in_threadpool
 
 import config
 import conversation
+import recording
 import speech
 
 log = logging.getLogger("phone")
@@ -48,18 +49,24 @@ def _call(session: str, from_: str | None = None) -> dict:
         raise HTTPException(status_code=503, detail="Busy")
 
 
-def _payload(text: str, lang: str, end: bool, heard: str = "", wav: bytes | None = None) -> dict:
+def _payload(text: str, lang: str, end: bool, heard: str = "", wav: bytes | None = None,
+             call: dict | None = None) -> dict:
     if wav is None:
-        wav = (speech.AUDIO_DIR / speech.synthesize(text, lang, rate=RATE)).read_bytes()
+        p = speech.AUDIO_DIR / speech.synthesize(text, lang, rate=RATE)
+        if call is not None:
+            recording.add_segment(call, p)
+        wav = p.read_bytes()
     return {"reply": text, "lang": lang, "end_call": end, "heard": heard,
             "audio_b64": base64.b64encode(wav).decode()}
 
 
 @router.post("/start")
 def start(session: str = Depends(session_id), from_: str | None = Query(None, alias="from", max_length=32)):
-    _call(session, from_)
+    call = _call(session, from_)
     log.info("Phone call %s from %s", session, conversation.mask_number(from_))
     names = [speech.synthesize(config.text(l, "greeting"), l, rate=RATE) for l in config.GREETING_ORDER]
+    for n in names:
+        recording.add_segment(call, speech.AUDIO_DIR / n)
     text = " ".join(config.text(l, "greeting") for l in config.GREETING_ORDER)
     return _payload(text, "en", False, wav=speech.concat_wavs(names))
 
@@ -88,9 +95,10 @@ async def turn(request: Request, session: str = Depends(session_id)):
     finally:
         if path:
             os.unlink(path)   # caller audio is never kept
+    payload = await run_in_threadpool(_payload, r["say"], r["lang"], r["end"], r["heard"], None, call)
     if r["end"]:
         conversation.finalize(session)
-    return await run_in_threadpool(_payload, r["say"], r["lang"], r["end"], r["heard"])
+    return payload
 
 
 @router.post("/end")

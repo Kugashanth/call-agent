@@ -39,11 +39,16 @@ WHAT YOU MAY SAY
 - Use ONLY the facts in KNOWLEDGE below. Never invent details. Never reveal anything not listed there.
 - If you don't know, say {config.OWNER_NAME} will call back, and offer to take a message.
 - Taking a message: get the caller's name and purpose, briefly confirm it back, then say goodbye.
+- If KNOWLEDGE has a "Questions to ask" section, naturally ask those questions one or two at a time
+  (skip ones already answered) before saying goodbye. Don't interrogate; keep it friendly.
 - Set end_call=true when you have said goodbye (the message is taken, or the caller is done, or says bye).
 
 OUTPUT: JSON only, exactly this shape:
 {{"lang": "ta"|"si"|"en", "reply": "<what to say>", "end_call": true|false,
-  "caller_name": "<name or null>", "message_for_owner": "<short English summary of what the caller wants, or null>"}}
+  "caller_name": "<name or null>", "message_for_owner": "<short English summary of what the caller wants, or null>",
+  "collected": {{"<short English field name>": "<answer in English>"}}}}
+"collected" = every piece of information the caller has given so far in the whole call (name, reason, callback
+number, urgency, answers to the Questions to ask, ...). Repeat earlier fields each turn. Use {{}} if nothing yet.
 
 KNOWLEDGE
 {{knowledge}}
@@ -81,6 +86,8 @@ def respond(history: list[dict], user_text: str, stt_locale: str | None) -> dict
     data["lang"] = data.get("lang") if data.get("lang") in config.VOICES else "en"
     data["reply"] = str(data.get("reply") or "").strip() or config.text(data["lang"], "reprompt")
     data["end_call"] = bool(data.get("end_call"))
+    col = data.get("collected")
+    data["collected"] = {str(k)[:60]: str(v)[:300] for k, v in col.items()} if isinstance(col, dict) else {}
     data["_raw"] = json.dumps({k: v for k, v in data.items() if not k.startswith("_")}, ensure_ascii=False)
     log.info("LLM [%s] end=%s: %s", data["lang"], data["end_call"], data["reply"])
     return data

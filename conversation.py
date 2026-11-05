@@ -8,6 +8,7 @@ from pathlib import Path
 import brain
 import config
 import notify
+import recording
 import speech
 
 CALL_DIR = Path(__file__).parent / "calls"
@@ -47,7 +48,7 @@ def get_call(sid: str, from_: str | None = None, channel: str = "twilio") -> dic
             if len(CALLS) >= MAX_LIVE_CALLS:
                 raise RuntimeError("too many live calls")
             CALLS[sid] = {"sid": sid, "from": from_, "channel": channel, "started": time.time(), "lang": "en",
-                          "history": [], "turns": [], "messages": [], "caller_name": None,
+                          "history": [], "turns": [], "messages": [], "caller_name": None, "collected": {},
                           "no_input": 0, "finalized": False}
         elif from_ and not CALLS[sid]["from"]:
             CALLS[sid]["from"] = from_
@@ -60,7 +61,7 @@ def save(call: dict) -> None:
     path = (CALL_DIR / f"{call['sid']}.json").resolve()
     if path.parent != CALL_DIR.resolve():   # defence in depth
         return
-    data = {k: v for k, v in call.items() if k != "history"}
+    data = {k: v for k, v in call.items() if k != "history" and not k.startswith("_")}
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -81,15 +82,19 @@ def finalize(sid: str) -> None:
         return
     call["finalized"] = True
     call["ended"] = time.time()
+    call["has_recording"] = recording.finalize(sid)
     save(call)
     if call["turns"]:
         notify.send(call)
     prune_audio()
+    recording.prune()
 
 
 def handle_audio(call: dict, wav_path: str | None) -> dict:
     """Process one caller utterance (or silence if wav_path is None).
     Returns {"say": text, "lang": ta|si|en, "end": bool, "heard": transcript}."""
+    if wav_path:
+        recording.add_segment(call, wav_path)          # caller's voice for the full-call recording
     heard, locale = speech.transcribe(wav_path) if wav_path else ("", None)
     heard = heard[:MAX_TRANSCRIPT_CHARS]
 
@@ -105,6 +110,8 @@ def handle_audio(call: dict, wav_path: str | None) -> dict:
     call["caller_name"] = (out.get("caller_name") or call["caller_name"] or None)
     if call["caller_name"]:
         call["caller_name"] = str(call["caller_name"])[:80]
+    if out.get("collected"):
+        call["collected"].update(out["collected"])
     if out.get("message_for_owner"):
         call["messages"].append(str(out["message_for_owner"])[:500])
     call["history"] += [{"role": "user", "text": f"[STT locale: {locale}] {heard}"},

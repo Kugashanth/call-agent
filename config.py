@@ -30,6 +30,10 @@ OWNER_NAME = os.getenv("OWNER_NAME", "Kathir")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
+# --- Call recordings (full conversation audio for the owner) ---
+RECORD_CALLS = os.getenv("RECORD_CALLS", "1") == "1"
+RECORDING_TTL_DAYS = int(os.getenv("RECORDING_TTL_DAYS", "30"))
+
 # --- Conversation limits ---
 MAX_TURNS = int(os.getenv("MAX_TURNS", "12"))
 MAX_NO_INPUT = 2
@@ -69,5 +73,15 @@ TEXTS = {
 GREETING_ORDER = ["ta", "si", "en"]  # greeting is played in each language, in this order
 
 
+RECORDING_NOTICE = {
+    "ta": "இந்த அழைப்பு பதிவு செய்யப்படுகிறது.",
+    "si": "මෙම ඇමතුම පටිගත කෙරේ.",
+    "en": "This call is recorded.",
+}
+
+
 def text(lang: str, key: str) -> str:
-    return TEXTS.get(lang, TEXTS["en"])[key].format(owner=OWNER_NAME)
+    t = TEXTS.get(lang, TEXTS["en"])[key].format(owner=OWNER_NAME)
+    if key == "greeting" and RECORD_CALLS:
+        t = f"{t} {RECORDING_NOTICE.get(lang, RECORDING_NOTICE['en'])}"
+    return t

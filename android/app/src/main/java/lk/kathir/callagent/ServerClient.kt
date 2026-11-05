@@ -68,6 +68,13 @@ class ServerClient(private val baseUrl: String, private val key: String, private
 
     fun getCall(sid: String): JSONObject = if (isLocal) LocalStore.getCall(ctx!!, sid) else if (isDemo) Demo.call(sid) else JSONObject(request("GET", "/api/calls/${enc(sid)}"))
 
+    /** Full-call voice recording (WAV bytes). */
+    fun getAudio(sid: String): ByteArray = when {
+        isLocal -> throw IOException("Recordings are only available with a server")
+        isDemo -> Demo.audio()
+        else -> requestBytes("/api/calls/${enc(sid)}/audio")
+    }
+
     fun deleteCall(sid: String) {
         if (isLocal) LocalStore.deleteCall(ctx!!, sid) else if (isDemo) Demo.delete(sid) else request("DELETE", "/api/calls/${enc(sid)}")
     }
@@ -110,6 +117,22 @@ class ServerClient(private val baseUrl: String, private val key: String, private
         }
     }
 
+    private fun requestBytes(path: String): ByteArray {
+        if (!isAllowedUrl(baseUrl)) throw IOException("Use https://")
+        val conn = URL(baseUrl + path).openConnection() as HttpURLConnection
+        try {
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 60_000
+            conn.setRequestProperty("X-Agent-Key", key)
+            val code = conn.responseCode
+            if (code == 404) throw IOException("No recording for this call")
+            if (code !in 200..299) throw IOException("HTTP $code")
+            return conn.inputStream.use { it.readBytes() }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     private fun parseReply(j: JSONObject): Reply {
         val b64 = j.optString("audio_b64", "")
         return Reply(
@@ -130,18 +153,22 @@ private object Demo {
 
     private val records = listOf(
         JSONObject().put("sid", "demo1").put("from", "+94771234567").put("started", now - 3600).put("ended", now - 3500)
-            .put("channel", "twilio").put("lang", "ta").put("caller_name", "Ravi")
+            .put("channel", "twilio").put("lang", "ta").put("caller_name", "Ravi").put("has_recording", true)
+            .put("collected", JSONObject().put("name", "Ravi").put("reason", "Data science project")
+                .put("callback", "0771234567, after 6 PM").put("urgent", "no"))
             .put("messages", JSONArray().put("Ravi wants to discuss a data science project; call back after 6 PM."))
             .put("turns", JSONArray()
                 .put(JSONObject().put("caller", "Hello, Kathir irukkara? Naan Ravi.").put("agent", "வணக்கம் Ravi! Kathir இப்போ busy. ஏதாவது message சொல்லணுமா?"))
                 .put(JSONObject().put("caller", "Project pathi pesanum, evening call pannunga.").put("agent", "சரி, Kathir-க்கு சொல்றேன். நன்றி!"))),
         JSONObject().put("sid", "demo2").put("from", "+94712223344").put("started", now - 86400).put("ended", now - 86300)
-            .put("channel", "twilio").put("lang", "si").put("caller_name", "Nimal")
+            .put("channel", "twilio").put("lang", "si").put("caller_name", "Nimal").put("has_recording", true)
+            .put("collected", JSONObject().put("name", "Nimal").put("reason", "Group assignment deadline").put("urgent", "yes"))
             .put("messages", JSONArray().put("Nimal asked about the group assignment deadline."))
             .put("turns", JSONArray()
                 .put(JSONObject().put("caller", "Ayubowan, assignment eka gana kathakaranna one.").put("agent", "ආයුබෝවන් Nimal! මම Kathir ට message එක දෙන්නම්."))),
         JSONObject().put("sid", "demo3").put("from", "+447700900123").put("started", now - 172800).put("ended", now - 172750)
-            .put("channel", "twilio").put("lang", "en").put("caller_name", JSONObject.NULL)
+            .put("channel", "twilio").put("lang", "en").put("caller_name", JSONObject.NULL).put("has_recording", false)
+            .put("collected", JSONObject())
             .put("messages", JSONArray())
             .put("turns", JSONArray()
                 .put(JSONObject().put("caller", "Is he available tomorrow morning?").put("agent", "He's usually in lectures on weekday mornings; the best time is after 6 PM."))),
@@ -161,4 +188,22 @@ private object Demo {
         records.firstOrNull { it.getString("sid") == sid && sid !in deleted } ?: throw IOException("Not found")
 
     fun delete(sid: String) { deleted.add(sid) }
+
+    /** 2-second demo "recording": two soft tones (8 kHz 16-bit mono WAV). */
+    fun audio(): ByteArray {
+        val rate = 8000
+        val n = rate * 2
+        val pcm = java.nio.ByteBuffer.allocate(n * 2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        for (i in 0 until n) {
+            val f = if (i < n / 2) 440.0 else 660.0
+            pcm.putShort((3000 * Math.sin(2 * Math.PI * f * i / rate)).toInt().toShort())
+        }
+        val data = pcm.array()
+        val h = java.nio.ByteBuffer.allocate(44).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        h.put("RIFF".toByteArray()); h.putInt(36 + data.size); h.put("WAVE".toByteArray())
+        h.put("fmt ".toByteArray()); h.putInt(16); h.putShort(1); h.putShort(1)
+        h.putInt(rate); h.putInt(rate * 2); h.putShort(2); h.putShort(16)
+        h.put("data".toByteArray()); h.putInt(data.size)
+        return h.array() + data
+    }
 }
