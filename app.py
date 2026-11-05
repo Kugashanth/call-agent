@@ -27,14 +27,17 @@ import speech
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("app")
 
-app = FastAPI(title="Auto Call Attendant")
+app = FastAPI(title="Auto Call Attendant", docs_url=None, redoc_url=None, openapi_url=None)  # no public API docs
+
+if config.PHONE_AGENT_KEY and len(config.PHONE_AGENT_KEY) < 24:
+    log.warning("PHONE_AGENT_KEY is shorter than 24 chars: /phone API is DISABLED until you set a longer key")
 app.mount("/audio", StaticFiles(directory=speech.AUDIO_DIR), name="audio")
 app.include_router(phone.router)
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "live_calls": len(conversation.CALLS)}
+    return {"ok": True}
 
 
 # ---------------- Twilio mode ----------------
@@ -108,7 +111,7 @@ async def voice(request: Request):
     """Twilio 'A call comes in' webhook."""
     form = await twilio_form(request)
     call = conversation.get_call(form.get("CallSid", "unknown"), form.get("From"))
-    log.info("Incoming Twilio call %s from %s", call["sid"], call["from"])
+    log.info("Incoming Twilio call %s from %s", call["sid"], conversation.mask_number(call["from"]))
     vr = VoiceResponse()
     for lang in config.GREETING_ORDER:
         await play(vr, config.text(lang, "greeting"), lang)

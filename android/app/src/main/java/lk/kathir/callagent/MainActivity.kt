@@ -2,6 +2,7 @@ package lk.kathir.callagent
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -80,6 +81,29 @@ class MainActivity : Activity() {
             .also { col.addView(it) }
 
         setContentView(ScrollView(this).apply { addView(col) })
+        if (!Prefs.consented(this)) showDisclosure()
+    }
+
+    /** Prominent disclosure + consent, shown before the app can do anything. */
+    private fun showDisclosure() {
+        AlertDialog.Builder(this)
+            .setTitle("Before you start")
+            .setMessage(
+                "Call Agent will:\n\n" +
+                "• Automatically ANSWER incoming calls you don't pick up (after the delay you set).\n" +
+                "• Use the MICROPHONE during those calls, through an Accessibility Service, to hear the caller.\n" +
+                "• Send the caller's voice to YOUR OWN server (the URL you enter) for speech recognition and AI replies. " +
+                "Nothing is sent anywhere else by this app.\n" +
+                "• Tell every caller at the start that they are talking to an AI assistant.\n\n" +
+                "Callers' voices are not stored by the app. Your server keeps text transcripts in its calls/ folder.\n\n" +
+                "Laws on answering/recording calls differ by country — use this only for your own number and " +
+                "tell regular callers you use an AI assistant.\n\n" +
+                "You can turn everything off any time with the switch or in Accessibility settings."
+            )
+            .setCancelable(false)
+            .setPositiveButton("I agree") { _, _ -> Prefs.setConsented(this, true); refresh() }
+            .setNegativeButton("Exit") { _, _ -> finish() }
+            .show()
     }
 
     override fun onResume() {
@@ -88,6 +112,10 @@ class MainActivity : Activity() {
     }
 
     private fun save() {
+        if (!Prefs.consented(this)) { enabled.isChecked = false; showDisclosure(); return }
+        if (url.text.isNotBlank() && !ServerClient.isAllowedUrl(url.text.toString().trim().trimEnd('/'))) {
+            Toast.makeText(this, "Use https:// (http:// only for LAN like 192.168.x.x)", Toast.LENGTH_LONG).show()
+        }
         Prefs.save(
             this, url.text.toString(), key.text.toString(), enabled.isChecked,
             delay.text.toString().toIntOrNull() ?: 10,

@@ -70,12 +70,12 @@ class CallAgentService : AccessibilityService() {
 
         when (state) {
             TelephonyManager.EXTRA_STATE_RINGING -> {
-                if (!Prefs.enabled(this) || pendingAnswer != null || session != null) return
+                if (!Prefs.consented(this) || !Prefs.enabled(this) || pendingAnswer != null || session != null) return
                 val delay = Prefs.delaySec(this)
                 val r = Runnable { pendingAnswer = null; answer() }
                 pendingAnswer = r
                 main.postDelayed(r, delay * 1000L)
-                AppLog.i("Ringing (${incomingNumber ?: "unknown"}) — auto-answer in ${delay}s if you don't pick up")
+                AppLog.i("Ringing (${mask(incomingNumber)}) — auto-answer in ${delay}s if you don't pick up")
             }
             TelephonyManager.EXTRA_STATE_OFFHOOK -> {
                 pendingAnswer?.let {
@@ -164,6 +164,9 @@ class CallAgentService : AccessibilityService() {
             restoreVolume()
         }
     }
+
+    private fun mask(n: String?): String =
+        if (n != null && n.length > 7) n.take(4) + "****" + n.takeLast(3) else (n ?: "unknown")
 
     // ---------------- audio routing ----------------
     @Suppress("DEPRECATION")

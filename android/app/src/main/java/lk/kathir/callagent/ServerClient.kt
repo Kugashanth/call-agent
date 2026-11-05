@@ -30,6 +30,7 @@ class ServerClient(private val baseUrl: String, private val key: String) {
     }
 
     fun health(): String {
+        checkUrl()
         val conn = URL("$baseUrl/health").openConnection() as HttpURLConnection
         conn.connectTimeout = 8000
         conn.readTimeout = 8000
@@ -40,10 +41,32 @@ class ServerClient(private val baseUrl: String, private val key: String) {
         }
     }
 
+    /** Only allow https://, or plain http:// to a private LAN address (laptop on the same Wi-Fi). */
+    private fun checkUrl() {
+        if (baseUrl.isEmpty()) throw IOException("Server URL is not set")
+        if (!isAllowedUrl(baseUrl)) throw IOException("Use https:// (http:// is only allowed for LAN addresses like 192.168.x.x)")
+    }
+
+    companion object {
+        fun isAllowedUrl(url: String): Boolean {
+            val u = try { URL(url) } catch (e: Exception) { return false }
+            if (u.protocol == "https") return true
+            if (u.protocol != "http") return false
+            val h = u.host
+            if (h == "localhost" || h == "127.0.0.1") return true
+            if (h.startsWith("10.") || h.startsWith("192.168.")) return true
+            if (h.startsWith("172.")) {
+                val second = h.split(".").getOrNull(1)?.toIntOrNull() ?: return false
+                return second in 16..31
+            }
+            return false
+        }
+    }
+
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
     private fun post(path: String, body: ByteArray): JSONObject {
-        if (baseUrl.isEmpty()) throw IOException("Server URL is not set")
+        checkUrl()
         val conn = URL(baseUrl + path).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = "POST"

@@ -6,4 +6,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# run as an unprivileged user; only audio/ and calls/ are writable
+RUN useradd --create-home --uid 10001 agent && mkdir -p audio calls && chown -R agent:agent audio calls
+USER agent
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"]

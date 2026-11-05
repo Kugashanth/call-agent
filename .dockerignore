@@ -1,0 +1,6 @@
+.env
+.git
+android/
+calls/
+audio/
+__pycache__/

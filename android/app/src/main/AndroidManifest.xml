@@ -10,6 +10,9 @@
 
     <application
         android:label="Call Agent"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
         android:icon="@android:drawable/sym_action_call"
         android:theme="@android:style/Theme.Material.Light.DarkActionBar"
         android:usesCleartextTraffic="true">
