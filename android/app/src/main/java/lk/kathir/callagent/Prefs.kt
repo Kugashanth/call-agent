@@ -32,6 +32,21 @@ object Prefs {
     fun playbackUsage(c: Context): Int = PLAYBACK_USAGES[playbackIndex(c)]
     fun playbackStream(c: Context): Int = PLAYBACK_STREAMS[playbackIndex(c)]
 
+    // ---- standalone mode (phone does everything; only a Gemini API key needed) ----
+    fun standalone(c: Context): Boolean = sp(c).getBoolean("standalone", true)
+    fun geminiKey(c: Context): String = sp(c).getString("gemini_key", "")!!.trim()
+    fun geminiModel(c: Context): String = sp(c).getString("gemini_model", "gemini-flash-latest")!!.trim().ifEmpty { "gemini-flash-latest" }
+    fun ownerName(c: Context): String = sp(c).getString("owner", "Kathir")!!.trim().ifEmpty { "Kathir" }
+
+    fun saveStandalone(c: Context, standalone: Boolean, geminiKey: String, model: String, owner: String) {
+        sp(c).edit()
+            .putBoolean("standalone", standalone)
+            .putString("gemini_key", geminiKey.trim())
+            .putString("gemini_model", model.trim())
+            .putString("owner", owner.trim())
+            .apply()
+    }
+
     fun saveServer(c: Context, url: String, key: String) {
         sp(c).edit().putString("url", url.trim()).putString("key", key.trim()).apply()
     }

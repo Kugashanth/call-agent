@@ -38,6 +38,8 @@ class CallAgentService : AccessibilityService() {
     private var savedVolume = -1
     private var savedStream = AudioManager.STREAM_MUSIC
 
+    private var voice: LocalVoice? = null
+
     private val audio by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     private val telecom by lazy { getSystemService(Context.TELECOM_SERVICE) as TelecomManager }
 
@@ -50,12 +52,14 @@ class CallAgentService : AccessibilityService() {
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(r, filter, Context.RECEIVER_EXPORTED)
         else registerReceiver(r, filter)
         receiver = r
+        voice = LocalVoice(this)   // created on the main thread (TTS requirement)
         AppLog.i("Accessibility service connected — ready to answer calls")
     }
 
     override fun onDestroy() {
         receiver?.let { unregisterReceiver(it) }
         stopSession()
+        voice?.shutdown()
         super.onDestroy()
     }
 
@@ -126,6 +130,7 @@ class CallAgentService : AccessibilityService() {
     }
 
     private fun runSession(number: String?) {
+        if (Prefs.standalone(this)) { runStandalone(number); return }
         val id = UUID.randomUUID().toString()
         val client = ServerClient(Prefs.serverUrl(this), Prefs.agentKey(this))
         val player = Player(this)
@@ -167,6 +172,30 @@ class CallAgentService : AccessibilityService() {
 
     private fun mask(n: String?): String =
         if (n != null && n.length > 7) n.take(4) + "****" + n.takeLast(3) else (n ?: "unknown")
+
+    /** Standalone: everything on the phone (Gemini + Android TTS), no server. */
+    private fun runStandalone(number: String?) {
+        val v = voice ?: LocalVoice(this).also { voice = it }
+        val recorder = UtteranceRecorder(MediaRecorder.AudioSource.MIC)
+        val silenceMs = Prefs.silenceMs(this)
+        try {
+            Thread.sleep(1200)                     // let the call audio connect
+            main.post { enableSpeaker() }
+            boostVolume(Prefs.playbackStream(this))
+            Thread.sleep(600)
+            val ended = StandaloneSession(
+                ctx = this, voice = v, usage = Prefs.playbackUsage(this), from = number, channel = "phone",
+                record = { recorder.record(shouldStop = { stopFlag }, silenceMs = silenceMs) },
+                shouldStop = { stopFlag },
+            ).run()
+            if (ended && !stopFlag) { Thread.sleep(400); hangUp() }
+        } catch (e: InterruptedException) {
+        } catch (e: Exception) {
+            AppLog.e("Standalone session error: $e")
+        } finally {
+            restoreVolume()
+        }
+    }
 
     // ---------------- audio routing ----------------
     @Suppress("DEPRECATION")

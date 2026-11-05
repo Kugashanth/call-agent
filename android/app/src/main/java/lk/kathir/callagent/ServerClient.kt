@@ -20,14 +20,15 @@ class Reply(
  * Talks to your own Call Agent server. Blocking calls — use from a background thread.
  * Server URL "demo" = built-in sample data (no server needed; used for Google Play review).
  */
-class ServerClient(private val baseUrl: String, private val key: String) {
+class ServerClient(private val baseUrl: String, private val key: String, private val ctx: android.content.Context? = null) {
 
     companion object {
         const val DEMO = "demo"
+        const val LOCAL = "local"   // standalone mode: records stored on this phone (needs ctx)
 
         /** Only allow https://, or plain http:// to a private LAN address (laptop on the same Wi-Fi). */
         fun isAllowedUrl(url: String): Boolean {
-            if (url == DEMO) return true
+            if (url == DEMO || url == LOCAL) return true
             val u = try { URL(url) } catch (e: Exception) { return false }
             if (u.protocol == "https") return true
             if (u.protocol != "http") return false
@@ -43,6 +44,7 @@ class ServerClient(private val baseUrl: String, private val key: String) {
     }
 
     val isDemo get() = baseUrl == DEMO
+    val isLocal get() = baseUrl == LOCAL && ctx != null
 
     // ---------- phone API (sideload auto-answer app) ----------
     fun start(session: String, from: String?): Reply =
@@ -57,21 +59,23 @@ class ServerClient(private val baseUrl: String, private val key: String) {
     }
 
     // ---------- dashboard API (both apps) ----------
-    fun health(): String = if (isDemo) "Demo mode (no server)" else "OK: " + request("GET", "/health")
+    fun health(): String = if (isLocal) "Standalone (this phone)" else if (isDemo) "Demo mode (no server)" else "OK: " + request("GET", "/health")
 
-    fun status(): JSONObject = if (isDemo) Demo.status() else JSONObject(request("GET", "/api/status"))
+    fun status(): JSONObject = if (isLocal) JSONObject().put("owner", Prefs.ownerName(ctx!!)).put("twilio_number", "")
+        else if (isDemo) Demo.status() else JSONObject(request("GET", "/api/status"))
 
-    fun listCalls(limit: Int = 50): JSONArray = if (isDemo) Demo.calls() else JSONArray(request("GET", "/api/calls?limit=$limit"))
+    fun listCalls(limit: Int = 50): JSONArray = if (isLocal) LocalStore.listCalls(ctx!!, limit) else if (isDemo) Demo.calls() else JSONArray(request("GET", "/api/calls?limit=$limit"))
 
-    fun getCall(sid: String): JSONObject = if (isDemo) Demo.call(sid) else JSONObject(request("GET", "/api/calls/${enc(sid)}"))
+    fun getCall(sid: String): JSONObject = if (isLocal) LocalStore.getCall(ctx!!, sid) else if (isDemo) Demo.call(sid) else JSONObject(request("GET", "/api/calls/${enc(sid)}"))
 
     fun deleteCall(sid: String) {
-        if (isDemo) Demo.delete(sid) else request("DELETE", "/api/calls/${enc(sid)}")
+        if (isLocal) LocalStore.deleteCall(ctx!!, sid) else if (isDemo) Demo.delete(sid) else request("DELETE", "/api/calls/${enc(sid)}")
     }
 
-    fun getKnowledge(): String = if (isDemo) Demo.knowledge else JSONObject(request("GET", "/api/knowledge")).getString("text")
+    fun getKnowledge(): String = if (isLocal) LocalStore.knowledge(ctx!!) else if (isDemo) Demo.knowledge else JSONObject(request("GET", "/api/knowledge")).getString("text")
 
     fun putKnowledge(text: String) {
+        if (isLocal) { LocalStore.setKnowledge(ctx!!, text); return }
         if (isDemo) { Demo.knowledge = text; return }
         request("PUT", "/api/knowledge", JSONObject().put("text", text).toString().toByteArray(), "application/json")
     }

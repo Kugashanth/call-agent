@@ -28,6 +28,7 @@ import java.util.Locale
 class DashboardActivity : Activity() {
 
     companion object {
+        const val EXTRA_LOCAL = "local"
         const val PRIVACY_URL = "https://github.com/Kugashanth/call-agent/blob/main/PRIVACY.md"
     }
 
@@ -40,7 +41,11 @@ class DashboardActivity : Activity() {
     private var twilioNumber: String = ""
     private var pad = 0
 
-    private fun client() = ServerClient(Prefs.serverUrl(this), Prefs.agentKey(this))
+    private val local get() = intent.getBooleanExtra(EXTRA_LOCAL, false)
+
+    private fun client() =
+        if (local) ServerClient(ServerClient.LOCAL, "", this)
+        else ServerClient(Prefs.serverUrl(this), Prefs.agentKey(this), this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,11 +103,16 @@ class DashboardActivity : Activity() {
         button("Privacy policy") { open(PRIVACY_URL) }
 
         setContentView(ScrollView(this).apply { fitsSystemWindows = true; addView(col) })
-        if (Prefs.serverUrl(this).isNotEmpty()) loadAll() else status.text = "Not connected. Enter your server below, or try the demo."
+        if (local) {
+            url.isEnabled = false; key.isEnabled = false
+            url.setText("Standalone mode — stored on this phone")
+        }
+        if (local || Prefs.serverUrl(this).isNotEmpty()) loadAll() else status.text = "Not connected. Enter your server below, or try the demo."
     }
 
     // ---------------- actions ----------------
     private fun saveServer() {
+        if (local) { toast("Standalone mode: no server needed"); return }
         val u = url.text.toString().trim().trimEnd('/')
         if (u.isNotEmpty() && !ServerClient.isAllowedUrl(u)) {
             toast("Use https:// (http:// only for LAN addresses like 192.168.x.x)")
@@ -115,8 +125,10 @@ class DashboardActivity : Activity() {
         status.text = "Connecting…"
         bg({ client().status() }) { s ->
             twilioNumber = s.optString("twilio_number", "")
-            status.text = (if (client().isDemo) "🧪 Demo mode" else "✅ Connected") + " — assistant for ${s.optString("owner")}"
-            fwdInfo.text = if (twilioNumber.isNotEmpty()) "Assistant number: $twilioNumber" else "Your server has no TWILIO_NUMBER set."
+            val cl = client()
+            status.text = (if (cl.isLocal) "📱 Standalone (this phone)" else if (cl.isDemo) "🧪 Demo mode" else "✅ Connected") + " — assistant for ${s.optString("owner")}"
+            fwdInfo.text = if (cl.isLocal) "Not needed: in standalone mode this phone answers calls itself."
+                else if (twilioNumber.isNotEmpty()) "Assistant number: $twilioNumber" else "Your server has no TWILIO_NUMBER set."
             loadCalls()
             loadKnowledge()
         }
