@@ -23,7 +23,10 @@ The phone needs to reach the server:
 
 Twilio settings aren't needed for this mode.
 
-## 2. Build the APK (pick one)
+## 2. Get the APK
+**Ready-built:** open https://github.com/Kugashanth/call-agent/releases/latest/download/CallAgent.apk on your phone. Every push to `android/` rebuilds it automatically.
+
+Or build it yourself:
 **A. GitHub (no Android Studio needed):** push this whole folder to a GitHub repo. Then *Actions → Build Android APK → latest run → Artifacts → CallAgent-apk* → download `app-debug.apk`.
 
 **B. Android Studio:** *Open* the `android/` folder → wait for Gradle sync → *Build → Build APK(s)*.
