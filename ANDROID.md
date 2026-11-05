@@ -1,5 +1,25 @@
 # Run it on your Android phone (the phone answers the call itself)
 
+## ⚡ Quick start: standalone mode (no laptop, no server)
+Everything runs on the phone: **Gemini** listens to the caller's audio (Tamil, Sinhala, English, Tanglish, Singlish) and writes the reply, and **Android's built-in voices** speak it. Calls and messages are saved on the phone.
+
+1. On the phone, download and install **https://github.com/Kugashanth/call-agent/releases/latest/download/CallAgent.apk** (allow "Install unknown apps").
+2. Open **Call Agent Auto** → **I agree**.
+3. Under **1. How the AI runs**, keep **Standalone** ON. Enter your name and a **Gemini API key** (free at https://aistudio.google.com/apikey).
+4. Tap **Install Tamil / Sinhala voices**: in Text-to-speech settings → Google engine ⚙ → *Install voice data* → download **Tamil** and **Sinhala**.
+5. **3. Setup**: **Grant permissions**. Android 13+: Settings → Apps → Call Agent Auto → ⋮ → **Allow restricted settings**. Then **Turn on accessibility service** → Call Agent → ON.
+6. **4. Test**: **Test connection / voices** should show all ✅. Then **🎙 Talk to the assistant now** and speak Tamil, Sinhala or Tanglish after the greeting.
+7. Switch **Auto-answer calls with AI** ON → **Save**. Let a friend call and don't pick up.
+8. **📋 Open calls** shows who called, their message and the transcript. Edit what the AI may say there too.
+
+Costs: Gemini's free tier is usually enough for personal use. Internet (Wi-Fi or mobile data) is needed during calls.
+
+---
+
+## Server mode (optional): laptop/cloud server instead of on-phone AI
+Turn **Standalone** OFF in the app and follow the steps below.
+
+
 No Twilio and no forwarding costs. Your Android phone auto-answers calls you don't pick up, turns on speakerphone, listens to the caller through the mic, sends the audio to your server (Azure STT → Gemini → Azure TTS), and plays the reply through the speaker.
 
 ```
