@@ -1,6 +1,6 @@
 # Privacy Policy: Call Agent
 
-_Last updated: 6 November 2026_
+_Last updated: 6 November 2026 (v1.2: call recordings, notifications)_
 
 Call Agent ("the app") is published by Kugashanth Thamotharakumar ("we"). This policy explains how the app handles information.
 
@@ -9,6 +9,7 @@ The app is a **dashboard for your own Call Agent server**. It connects **only to
 
 ## What the app accesses on your phone
 - **Internet:** to connect to the server address you enter.
+- **Notifications:** to tell you when your agent has answered a call. The app checks your server about every 15 minutes.
 - The app does **not** access your microphone, contacts, call log, phone calls, location, camera, photos or files.
 - Call forwarding codes are opened in your phone's own dialer. You press call to confirm; the app cannot place calls itself.
 
@@ -16,7 +17,7 @@ The app is a **dashboard for your own Call Agent server**. It connects **only to
 - Your server address and agent key, stored in the app's private storage. They are **excluded from cloud backup and device transfer**, and deleted when you uninstall the app.
 
 ## Data shown in the app (stored on YOUR server, not by us)
-Your server answers calls with an AI assistant and keeps records of those calls: caller phone number, time, detected language, caller's name if given, the message left for you, and a text transcript. The app **displays** these records and lets you **delete** them. They are stored on the server you control, and they are processed by the speech and AI services you configured on it (e.g. Microsoft Azure Speech, Google Gemini, Twilio) under those providers' own terms. Callers are told at the start of every call that they are speaking with an AI assistant.
+Your server answers calls with an AI assistant and keeps records of those calls: caller phone number, time, detected language, caller's name if given, the information the caller gives in answer to your questions, the message left for you, a text transcript, and (if recording is enabled on your server) a **voice recording** of the conversation. Callers are told at the start that the call is recorded. Recordings are deleted automatically after 30 days by default. The app **displays** these records, plays recordings, lets you save or share them (only when you choose to), and lets you **delete** them. They are stored on the server you control, and they are processed by the speech and AI services you configured on it (e.g. Microsoft Azure Speech, Google Gemini, Twilio) under those providers' own terms. Callers are told at the start of every call that they are speaking with an AI assistant.
 
 ## Security
 Connections to servers outside your local network must use **HTTPS** (encrypted). Requests are authenticated with your private agent key.

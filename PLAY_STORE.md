@@ -1,6 +1,6 @@
 # Publishing "Call Agent" on Google Play
 
-The **play** flavor is a dashboard app. Calls are answered in the cloud by your server (Twilio mode), and the app shows calls, messages and transcripts, edits what the AI may say, and sets up call forwarding. It requests **only INTERNET**: no accessibility service, microphone, call log or phone permissions, so it avoids the policy problems of the sideload app.
+The **play** flavor is your AI call agent's app. It works with the phone's normal call app: unanswered, busy or unreachable calls are forwarded (standard GSM codes) to your agent in the cloud (Twilio mode), which talks to the caller, collects the information you ask for, and records the conversation with an announced recording notice. The app shows a notification for each call, plus the **voice recording**, the **script** and the **information collected**. It requests only INTERNET and notification permissions: no accessibility service, microphone, call log or phone permissions, so it avoids the policy problems of the sideload app.
 
 > The **sideload** auto-answer app (CallAgent.apk) must **never** be uploaded to Play. Google Play does not allow the Accessibility API for call audio.
 
@@ -39,32 +39,39 @@ Keep **Play App Signing** turned on (the default), so Google holds the real app 
 **App name (≤30):** `Call Agent – AI Call Assistant`
 
 **Short description (≤80):**
-`AI answers your missed calls in Tamil, Sinhala & English and saves messages.`
+`AI agent answers calls you miss, collects details & gives you recording + script`
 
 **Full description:**
 ```
-Call Agent is the dashboard for your own AI call assistant.
+Call Agent is your personal AI call agent. It works with your phone's normal call app: calls you don't
+answer, reject or can't take are forwarded to your agent, which talks to the caller for you.
 
-When you can't pick up, calls you forward to your assistant are answered by an AI that speaks
-Tamil, Sinhala and English — and understands mixed speech like Tanglish and Singlish. It tells
-callers it is an AI, answers only the questions you allow, and takes a message for you.
+Your agent:
+• Speaks Tamil, Sinhala and English, and understands mixed speech like Tanglish and Singlish
+• Tells every caller it is an AI assistant and that the call is recorded
+• Answers only the questions you allow, and asks the questions YOU choose
+  (name, reason, callback number, urgency, anything you add)
+• Takes a message and ends the call politely
 
-With the Call Agent app you can:
-• See every call your assistant answered: caller, time and language
-• Read the message the caller left, plus the full conversation transcript
-• Call back with one tap
-• Edit what your assistant is allowed to tell callers (availability, services, FAQs)
-• Turn call forwarding on or off with one tap (uses your phone's dialer)
-• Delete call records any time
+In the app you get, for every call:
+• A notification with the caller and their message
+• The full VOICE RECORDING of the conversation (play, save, share)
+• The SCRIPT: a complete written transcript
+• The INFORMATION COLLECTED, neatly listed
+• One-tap call back
+
+Also:
+• Edit what your agent may say and which questions it asks
+• Turn call forwarding on/off (when busy, unanswered or unreachable) with one tap
+• Delete any call record any time
 
 Privacy first:
-• The app connects only to YOUR OWN Call Agent server — the developer receives no data
-• No microphone, contacts or call-log access
-• HTTPS required for remote servers; your key is never backed up to the cloud
+• The app connects only to YOUR OWN Call Agent server; the developer receives no data
+• No microphone, contacts or call-log access on your phone
+• HTTPS required; your key is never backed up to the cloud
 
 Requires your own Call Agent server (open source: github.com/Kugashanth/call-agent).
-Try the app instantly with built-in demo data: enter "demo" as the server address.
-
+Try it instantly with built-in demo data: enter "demo" as the server address.
 Call forwarding charges depend on your mobile operator.
 ```
 **Category:** Communication. **Tags:** call assistant, voicemail.
@@ -73,7 +80,7 @@ Call forwarding charges depend on your mobile operator.
 **Graphics:**
 - App icon 512×512: `store/icon-512.png`
 - Feature graphic 1024×500: `store/feature-1024x500.png`
-- Phone screenshots (at least 2): install CallAgent-Dashboard.apk, tap **Try demo**, and take screenshots of the calls list, a call detail and the knowledge editor.
+- Phone screenshots (at least 2): install CallAgent-Dashboard.apk, tap **Try demo**, and take screenshots of the calls list, a call detail (recording + info + script) and the knowledge editor.
 
 ### App content (Policy → App content)
 | Section | Answer |
@@ -91,7 +98,7 @@ Call forwarding charges depend on your mobile operator.
 ### Data safety (honest answers)
 The app sends data **only to a server the user configures and controls**; the developer collects nothing. Answer the form as follows:
 - *Does your app collect or share any of the required user data types?* → **Yes**. The app displays call records fetched from the user's server.
-- Data types → **Personal info: Phone number**, **Messages: Other in-app messages** (call messages/transcripts)
+- Data types → **Personal info: Phone number, Name**, **Messages: Other in-app messages** (messages, transcripts, collected info), **Audio: Voice or sound recordings** (call recordings)
   - Collected: **Yes** / Shared: **No**
   - Processed ephemerally: **No** (stored on the user's own server)
   - Required or optional: **Optional** (the app works in demo mode without it)
