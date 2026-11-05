@@ -21,6 +21,7 @@ from twilio.twiml.voice_response import VoiceResponse
 
 import config
 import conversation
+import dashboard
 import phone
 import speech
 
@@ -33,6 +34,7 @@ if config.PHONE_AGENT_KEY and len(config.PHONE_AGENT_KEY) < 24:
     log.warning("PHONE_AGENT_KEY is shorter than 24 chars: /phone API is DISABLED until you set a longer key")
 app.mount("/audio", StaticFiles(directory=speech.AUDIO_DIR), name="audio")
 app.include_router(phone.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/health")

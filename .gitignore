@@ -8,3 +8,7 @@ android/app/build/
 android/local.properties
 .idea/
 *.iml
+dist/
+*.jks
+*.keystore
+keystore.properties

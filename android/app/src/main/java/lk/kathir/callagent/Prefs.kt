@@ -32,6 +32,10 @@ object Prefs {
     fun playbackUsage(c: Context): Int = PLAYBACK_USAGES[playbackIndex(c)]
     fun playbackStream(c: Context): Int = PLAYBACK_STREAMS[playbackIndex(c)]
 
+    fun saveServer(c: Context, url: String, key: String) {
+        sp(c).edit().putString("url", url.trim()).putString("key", key.trim()).apply()
+    }
+
     fun consented(c: Context): Boolean = sp(c).getBoolean("consented", false)
     fun setConsented(c: Context, v: Boolean) { sp(c).edit().putBoolean("consented", v).apply() }
 

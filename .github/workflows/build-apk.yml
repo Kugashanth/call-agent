@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android apps
 on:
   push:
     branches: [main]
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # needed to publish the APK as a release
+  contents: write   # needed to publish the APKs as a release
 
 jobs:
   build:
@@ -20,19 +20,51 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Build debug APK
-        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
-      - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/CallAgent.apk
+
+      # Optional: Play upload key from repo secrets (see PLAY_STORE.md). Without it, no .aab is produced.
+      - name: Decode upload key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+            echo "Signing key found: will build a signed Play bundle."
+          else
+            echo "No KEYSTORE_BASE64 secret: building APKs only."
+          fi
+
+      - name: Build APKs (+ signed Play bundle when key is present)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          TASKS="assembleSideloadDebug assemblePlayDebug"
+          if [ -n "$KEYSTORE_PATH" ]; then TASKS="$TASKS bundlePlayRelease"; fi
+          ./gradlew $TASKS --no-daemon
+          mkdir -p ../dist
+          cp app/build/outputs/apk/sideload/debug/app-sideload-debug.apk ../dist/CallAgent.apk
+          cp app/build/outputs/apk/play/debug/app-play-debug.apk ../dist/CallAgent-Dashboard.apk
+          if [ -n "$KEYSTORE_PATH" ]; then cp app/build/outputs/bundle/playRelease/app-play-release.aab ../dist/CallAgent-play.aab; fi
+          rm -f "$RUNNER_TEMP/upload.jks"
+          ls -la ../dist
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: CallAgent-apk
-          path: android/app/build/outputs/apk/debug/CallAgent.apk
-      - name: Publish as "latest" release (direct phone download link)
+          name: CallAgent-builds
+          path: dist/*
+
+      - name: Publish as "latest" release (direct phone download links)
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: latest
-          name: Call Agent APK (latest build)
-          body: "Download **CallAgent.apk** on your Android phone and install it. Setup steps: see ANDROID.md."
-          files: android/app/build/outputs/apk/debug/CallAgent.apk
+          name: Call Agent (latest build)
+          body: |
+            - **CallAgent.apk**: phone answers calls itself (sideload only, see ANDROID.md)
+            - **CallAgent-Dashboard.apk**: dashboard app = the Google Play version (calls answered in the cloud)
+            - **CallAgent-play.aab**: signed bundle to upload to Google Play Console (only when the signing key is configured)
+          files: dist/*
+          fail_on_unmatched_files: false
           make_latest: true

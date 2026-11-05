@@ -74,13 +74,16 @@ class MainActivity : Activity() {
         button("2. Turn on accessibility service") { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         button("3. Test server connection") { save(); testServer() }
         button("4. Test AI voice (plays greeting)") { save(); testVoice() }
+        button("📋 Calls, messages & knowledge (dashboard)") {
+            save(); startActivity(Intent(this, DashboardActivity::class.java))
+        }
         button("Refresh log") { refresh() }
 
         label("Log (newest first)")
         log = TextView(this).apply { setTextIsSelectable(true); textSize = 12f; typeface = android.graphics.Typeface.MONOSPACE }
             .also { col.addView(it) }
 
-        setContentView(ScrollView(this).apply { addView(col) })
+        setContentView(ScrollView(this).apply { fitsSystemWindows = true; addView(col) })
         if (!Prefs.consented(this)) showDisclosure()
     }
 

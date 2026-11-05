@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Call Agent Auto</string>
     <string name="a11y_desc">Answers incoming calls when you don\'t, switches to speakerphone, listens to the caller and replies in Tamil, Sinhala or English using your Call Agent server. It also presses the in-call Speaker button if needed.</string>
 </resources>

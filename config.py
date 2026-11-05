@@ -15,6 +15,7 @@ PHONE_AGENT_KEY = os.getenv("PHONE_AGENT_KEY", "")  # shared secret; the app sen
 # --- Twilio ---
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_NUMBER = os.getenv("TWILIO_NUMBER", "")  # e.g. +14155550123 (shown in the app for call forwarding)
 
 # --- Azure Speech (STT + TTS) ---
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY", "")

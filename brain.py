@@ -9,10 +9,10 @@ from google.genai import types
 import config
 
 log = logging.getLogger("brain")
-KNOWLEDGE = (Path(__file__).parent / "knowledge.md").read_text(encoding="utf-8")
+KNOWLEDGE_FILE = Path(__file__).parent / "knowledge.md"   # editable from the dashboard app
 _client = genai.Client(api_key=config.GEMINI_API_KEY)
 
-SYSTEM = f"""You are the friendly phone assistant of {config.OWNER_NAME}. You answer calls when {config.OWNER_NAME} cannot.
+SYSTEM_TEMPLATE = f"""You are the friendly phone assistant of {config.OWNER_NAME}. You answer calls when {config.OWNER_NAME} cannot.
 The caller's speech reaches you as a speech-to-text transcript, so expect recognition mistakes: infer the meaning.
 
 LANGUAGE RULES (most important)
@@ -46,8 +46,13 @@ OUTPUT: JSON only, exactly this shape:
   "caller_name": "<name or null>", "message_for_owner": "<short English summary of what the caller wants, or null>"}}
 
 KNOWLEDGE
-{KNOWLEDGE}
+{{knowledge}}
 """
+
+
+def system_prompt() -> str:
+    """Re-read knowledge.md on every call so dashboard edits apply immediately."""
+    return SYSTEM_TEMPLATE.replace("{knowledge}", KNOWLEDGE_FILE.read_text(encoding="utf-8"))
 
 
 def respond(history: list[dict], user_text: str, stt_locale: str | None) -> dict:
@@ -60,7 +65,7 @@ def respond(history: list[dict], user_text: str, stt_locale: str | None) -> dict
         model=config.GEMINI_MODEL,
         contents=contents,
         config=types.GenerateContentConfig(
-            system_instruction=SYSTEM,
+            system_instruction=system_prompt(),
             response_mime_type="application/json",
             temperature=0.4,
             max_output_tokens=500,
