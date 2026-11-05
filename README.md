@@ -1,8 +1,10 @@
 # Auto Call Attendant: Tamil · Sinhala · English · Tanglish
 
-> **Two ways to run it:**
-> 1. **Android app: your phone answers the call itself.** No Twilio, no forwarding cost → see **[ANDROID.md](ANDROID.md)**
-> 2. **Twilio number + call forwarding:** clean phone-line audio → this file.
+> **Ways to run it:**
+> 1. **Twilio number + call forwarding** (clean phone-line audio) → this file. Manage it with the **Call Agent dashboard app**, the Google Play version → **[PLAY_STORE.md](PLAY_STORE.md)**
+> 2. **Sideload app: your phone answers the call itself.** No Twilio → **[ANDROID.md](ANDROID.md)** (not allowed on Google Play)
+>
+> Downloads: https://github.com/Kugashanth/call-agent/releases/latest · Security review: [SECURITY.md](SECURITY.md) · Privacy: [PRIVACY.md](PRIVACY.md)
 
 An AI that answers your phone when you can't. It greets callers in all three languages, understands Tamil, Sinhala, English and code-mixed speech (Tanglish/Singlish), replies in the caller's language, answers from `knowledge.md`, takes messages, and sends you a call summary on Telegram.
 
