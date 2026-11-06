@@ -47,6 +47,17 @@ object Prefs {
             .apply()
     }
 
+    // ---- appearance + agent behaviour (new UI saves each setting immediately) ----
+    fun themeMode(c: Context): Int = sp(c).getInt("theme", 0)            // 0 system, 1 light, 2 dark
+    fun dynamicColor(c: Context): Boolean = sp(c).getBoolean("dynamic", false)
+    fun recordCalls(c: Context): Boolean = sp(c).getBoolean("record", true)
+    const val DEFAULT_QUESTIONS = "Caller's name\nReason for the call\nBest number and time to call back\nIs it urgent?"
+    fun questions(c: Context): String = sp(c).getString("questions", DEFAULT_QUESTIONS)!!
+
+    fun setInt(c: Context, k: String, v: Int) { sp(c).edit().putInt(k, v).apply() }
+    fun setBool(c: Context, k: String, v: Boolean) { sp(c).edit().putBoolean(k, v).apply() }
+    fun setStr(c: Context, k: String, v: String) { sp(c).edit().putString(k, v).apply() }
+
     /** Newest call start time (epoch s) already notified about. */
     fun lastSeen(c: Context): Long = sp(c).getLong("last_seen", 0L)
     fun setLastSeen(c: Context, v: Long) { sp(c).edit().putLong("last_seen", v).apply() }

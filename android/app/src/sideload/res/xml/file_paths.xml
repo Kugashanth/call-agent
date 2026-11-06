@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Files the app may share (only when the user taps Share) -->
+<paths>
+    <files-path name="recordings" path="recordings/" />
+    <cache-path name="cache" path="." />
+</paths>

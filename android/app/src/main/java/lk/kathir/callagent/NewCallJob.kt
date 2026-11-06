@@ -52,28 +52,7 @@ class NewCallJob : JobService() {
             if (newest > last) Prefs.setLastSeen(c, newest)
         }
 
-        private fun notify(c: Context, call: org.json.JSONObject) {
-            if (Build.VERSION.SDK_INT >= 33 &&
-                c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-            val nm = c.getSystemService(NotificationManager::class.java)
-            nm.createNotificationChannel(NotificationChannel(CHANNEL, "Calls answered by AI", NotificationManager.IMPORTANCE_DEFAULT))
-            val who = call.optString("caller_name").takeIf { it.isNotEmpty() && it != "null" } ?: call.optString("from", "Unknown caller")
-            val msgs = call.optJSONArray("messages")
-            val msg = if (msgs != null && msgs.length() > 0) msgs.optString(msgs.length() - 1) else "Tap to see the script and recording"
-            val open = PendingIntent.getActivity(
-                c, 0, Intent(c, DashboardActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            )
-            val n = Notification.Builder(c, CHANNEL)
-                .setSmallIcon(android.R.drawable.stat_notify_missed_call)
-                .setContentTitle("📞 $who — answered by your AI agent")
-                .setContentText(msg)
-                .setStyle(Notification.BigTextStyle().bigText(msg))
-                .setContentIntent(open)
-                .setAutoCancel(true)
-                .build()
-            nm.notify(call.optString("sid").hashCode(), n)
-        }
+        private fun notify(c: Context, call: org.json.JSONObject) = Notifier.callAnswered(c, call)
     }
 
     @Volatile private var worker: Thread? = null

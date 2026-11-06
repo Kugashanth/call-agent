@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 // Release signing comes from environment variables (GitHub Actions secrets) — never commit a keystore.
@@ -54,9 +55,20 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose = true }
     lint {
         abortOnError = false
         checkReleaseBuilds = false
     }
 }
-// No extra libraries: only Android framework APIs + Kotlin stdlib.
+dependencies {
+    // Jetpack Compose + Material 3 (new UI with light/dark theme)
+    val bom = platform("androidx.compose:compose-bom:2024.12.01")
+    implementation(bom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.core:core-ktx:1.15.0")
+}

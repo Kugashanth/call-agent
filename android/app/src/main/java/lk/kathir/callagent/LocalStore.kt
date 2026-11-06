@@ -47,7 +47,24 @@ object LocalStore {
         return JSONObject(f.readText())
     }
 
-    fun deleteCall(c: Context, sid: String) { file(c, sid).delete() }
+    fun recordingFile(c: Context, sid: String): File {
+        if (!SAFE.matches(sid)) throw IOException("Invalid id")
+        return File(File(c.filesDir, "recordings").apply { mkdirs() }, "$sid.wav")
+    }
+
+    fun deleteCall(c: Context, sid: String) {
+        file(c, sid).delete()
+        recordingFile(c, sid).delete()
+    }
+
+    fun deleteAll(c: Context) {
+        dir(c).listFiles()?.forEach { it.delete() }
+        File(c.filesDir, "recordings").listFiles()?.forEach { it.delete() }
+    }
+
+    /** Total size of everything stored (calls + recordings), in bytes. */
+    fun storageBytes(c: Context): Long =
+        listOf(dir(c), File(c.filesDir, "recordings")).sumOf { d -> d.listFiles()?.sumOf { it.length() } ?: 0L }
 
     fun defaultKnowledge(owner: String) = """
         ## About

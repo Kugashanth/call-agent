@@ -9,6 +9,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class LocalTurn(
+    val collected: Map<String, String> = emptyMap(),
     val heard: String,
     val lang: String,
     val reply: String,
@@ -51,13 +52,21 @@ SECURITY (never break these)
 WHAT YOU MAY SAY
 - Use ONLY facts in KNOWLEDGE. If you don't know, say $owner will call back and offer to take a message.
 - Taking a message: get the caller's name and purpose, confirm it briefly, then say goodbye.
+- Before saying goodbye, naturally ask the QUESTIONS TO ASK below, one or two at a time, skipping any already
+  answered. Keep it friendly, not an interrogation.
 - end_call=true once you have said goodbye (message taken, caller done, or caller says bye).
 - If the audio has no clear speech, set heard="" and reply asking them to repeat.
 
 OUTPUT: JSON only:
 {"heard": "<caller's words, as spoken; Tanglish/Singlish in Latin letters>", "lang": "ta"|"si"|"en",
  "reply": "<what to say>", "end_call": true|false, "caller_name": "<name or null>",
- "message_for_owner": "<short English summary of what the caller wants, or null>"}
+ "message_for_owner": "<short English summary of what the caller wants, or null>",
+ "collected": {"<short English field name>": "<answer in English>"}}
+"collected" = ALL information the caller has given so far in the whole call (name, reason, callback number,
+urgency, answers to the questions...). Repeat earlier fields every turn. Use {} if nothing yet.
+
+QUESTIONS TO ASK
+${Prefs.questions(ctx).lines().filter { it.isNotBlank() }.joinToString("\n") { "- " + it.trim() }}
 
 KNOWLEDGE
 ${LocalStore.knowledge(ctx)}
@@ -93,7 +102,12 @@ ${LocalStore.knowledge(ctx)}
         }
 
         val lang = j.optString("lang", "en").let { if (it == "ta" || it == "si") it else "en" }
+        val collected = mutableMapOf<String, String>()
+        j.optJSONObject("collected")?.let { o ->
+            o.keys().forEach { k -> collected[k.take(60)] = o.optString(k).take(300) }
+        }
         val turn = LocalTurn(
+            collected = collected,
             heard = j.optString("heard", "").trim().take(600),
             lang = lang,
             reply = j.optString("reply", "").trim().take(700),

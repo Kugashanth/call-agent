@@ -8,6 +8,12 @@ import java.util.UUID
 
 /** Fixed phrases in the three languages (the AI writes everything else). */
 object Phrases {
+    fun recordingNotice(lang: String) = when (lang) {
+        "ta" -> "இந்த அழைப்பு பதிவு செய்யப்படுகிறது."
+        "si" -> "මෙම ඇමතුම පටිගත කෙරේ."
+        else -> "This call is recorded."
+    }
+
     fun greeting(lang: String, owner: String) = when (lang) {
         "ta" -> "வணக்கம்! இது $owner அவர்களின் AI உதவியாளர்."
         "si" -> "ආයුබෝවන්! මේ ${owner}ගේ AI සහායකයා."
@@ -54,6 +60,9 @@ class StandaloneSession(
 
     private val owner = Prefs.ownerName(ctx)
     private val player = Player(ctx)
+    private val recordOn = Prefs.recordCalls(ctx) && channel != "test"
+    private val pieces = mutableListOf<ByteArray>()          // caller + agent audio, in order
+    private val collected = JSONObject()
     private val call = JSONObject()
         .put("sid", "L" + UUID.randomUUID().toString().replace("-", "").take(20))
         .put("from", from ?: "Unknown")
@@ -63,6 +72,8 @@ class StandaloneSession(
         .put("caller_name", JSONObject.NULL)
         .put("messages", JSONArray())
         .put("turns", JSONArray())
+        .put("collected", JSONObject())
+        .put("has_recording", false)
 
     fun run(): Boolean {
         val brain = LocalBrain(ctx)
@@ -72,11 +83,13 @@ class StandaloneSession(
         try {
             for (l in listOf("ta", "si", "en")) {
                 if (shouldStop()) return false
-                speak(Phrases.greeting(l, owner), l)
+                val g = Phrases.greeting(l, owner) + if (recordOn) " " + Phrases.recordingNotice(l) else ""
+                speak(g, l)
             }
             var turns = 0
             while (!shouldStop() && turns < MAX_TURNS) {
                 val wav = record()
+                if (wav != null && recordOn) pieces.add(wav)
                 if (shouldStop()) break
 
                 val t = if (wav == null) null else brain.respond(wav)
@@ -92,6 +105,8 @@ class StandaloneSession(
                 call.put("lang", lang)
                 t.callerName?.let { call.put("caller_name", it) }
                 t.message?.let { call.getJSONArray("messages").put(it) }
+                for ((k, v) in t.collected) collected.put(k, v)
+                call.put("collected", collected)
                 call.getJSONArray("turns").put(JSONObject().put("caller", t.heard).put("agent", t.reply).put("lang", t.lang))
                 save()
 
@@ -111,7 +126,16 @@ class StandaloneSession(
             ended = true
         } finally {
             call.put("ended", System.currentTimeMillis() / 1000.0)
+            if (recordOn && call.getJSONArray("turns").length() > 0) {
+                try {
+                    val ok = WavUtil.join(pieces, LocalStore.recordingFile(ctx, call.getString("sid")))
+                    call.put("has_recording", ok)
+                } catch (e: Exception) { AppLog.e("Recording failed: $e") }
+            }
             save()
+            if (channel != "test" && call.getJSONArray("turns").length() > 0) {
+                try { Notifier.callAnswered(ctx, call) } catch (e: Exception) {}
+            }
         }
         return ended
     }
@@ -124,8 +148,11 @@ class StandaloneSession(
     private fun speak(text: String, lang: String) {
         val f = File.createTempFile("say", ".wav", ctx.cacheDir)
         try {
-            if (voice.synthesize(text, lang, f)) player.play(f.readBytes(), usage)
-            else AppLog.e("Could not synthesize speech ($lang)")
+            if (voice.synthesize(text, lang, f)) {
+                val bytes = f.readBytes()
+                if (recordOn) pieces.add(bytes)
+                player.play(bytes, usage)
+            } else AppLog.e("Could not synthesize speech ($lang)")
         } finally {
             f.delete()
         }
