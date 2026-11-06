@@ -1,18 +1,18 @@
 # Run it on your Android phone (the phone answers the call itself)
 
-## ⚡ Quick start: standalone mode (no laptop, no server)
-Everything runs on the phone: **Gemini** listens to the caller's audio (Tamil, Sinhala, English, Tanglish, Singlish) and writes the reply, and **Android's built-in voices** speak it. Calls and messages are saved on the phone.
+## ⚡ Quick start: everything on your phone
+The app (**Call Agent Auto**) answers calls you don't pick up and stores **everything on the phone**: calls, voice recordings, scripts, collected info and settings. Only the caller's speech is sent to **Gemini** to understand it. Android's built-in Tamil/Sinhala/English voices do the speaking.
 
-1. On the phone, download and install **https://github.com/Kugashanth/call-agent/releases/latest/download/CallAgent.apk** (allow "Install unknown apps").
-2. Open **Call Agent Auto** → **I agree**.
-3. Under **1. How the AI runs**, keep **Standalone** ON. Enter your name and a **Gemini API key** (free at https://aistudio.google.com/apikey).
-4. Tap **Install Tamil / Sinhala voices**: in Text-to-speech settings → Google engine ⚙ → *Install voice data* → download **Tamil** and **Sinhala**.
-5. **3. Setup**: **Grant permissions**. Android 13+: Settings → Apps → Call Agent Auto → ⋮ → **Allow restricted settings**. Then **Turn on accessibility service** → Call Agent → ON.
-6. **4. Test**: **Test connection / voices** should show all ✅. Then **🎙 Talk to the assistant now** and speak Tamil, Sinhala or Tanglish after the greeting.
-7. Switch **Auto-answer calls with AI** ON → **Save**. Let a friend call and don't pick up.
-8. **📋 Open calls** shows who called, their message and the transcript. Edit what the AI may say there too.
-
-Costs: Gemini's free tier is usually enough for personal use. Internet (Wi-Fi or mobile data) is needed during calls.
+1. Install **https://github.com/Kugashanth/call-agent/releases/latest/download/CallAgent.apk** (allow "Install unknown apps").
+2. Open it → **I agree**.
+3. **Home → Setup** checklist: tap each **Allow / Turn on / Add / Install** until all are ✅
+   - Android 13+: if the accessibility switch is greyed out → Settings → Apps → Call Agent Auto → ⋮ → **Allow restricted settings**.
+   - Gemini key: free at https://aistudio.google.com/apikey → paste it in **Settings → Agent brain**.
+4. **Agent** tab: your name, the **questions to ask callers**, and what the agent may tell them.
+5. **Home → Start test conversation**, then speak Tamil, Sinhala or Tanglish.
+6. Switch **Agent is ON**. Calls you don't answer get picked up after the delay you set.
+7. **Calls** tab: each call has the caller, **Information collected**, message, **voice recording** (play / share / save to Downloads) and the **script** as chat bubbles. You also get a notification after every call.
+8. **Settings → Appearance**: System / Light / Dark (plus wallpaper colours on Android 12+).
 
 ---
 
