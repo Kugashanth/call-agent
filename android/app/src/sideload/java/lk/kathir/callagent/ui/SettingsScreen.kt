@@ -153,15 +153,36 @@ fun SettingsScreen(
                         label = { Text(n) }, colors = FilterChipDefaults.filterChipColors())
                 }
             }
-            Hint("If callers can't hear the agent, try another option. Phones differ.")
+            Hint("\"Direct to call\" sends the voice straight into the call where the phone allows it; otherwise it plays loudly on the speaker. If callers can't hear the agent, see \"Caller can't hear the agent?\" below.")
             HorizontalDivider()
             SwitchRow("Record calls", "Saves the whole conversation as audio. Callers are told \"This call is recorded\".", record) {
                 record = it; Prefs.setBool(ctx, "record", it)
             }
         }
 
+        // ---------- caller can't hear ----------
+        SectionCard("Caller can't hear the agent?", Icons.Filled.Info) {
+            Text(
+                "Phones remove sound that comes out of their own speaker during a call (echo cancellation), " +
+                    "so on some phones the caller hears little or nothing. Try in this order:",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            listOf(
+                "1. Keep \"Direct to call\" selected, then make a test call. Diagnostics log shows \"Direct-to-call output AVAILABLE\" if your phone supports it.",
+                "2. If not available: choose Alarm, then Media, and test again.",
+                "3. In your Phone app settings turn OFF noise reduction / \"Voice focus\" / \"Clear voice\".",
+                "4. Put the phone face-up on a table (mic and speaker not covered), media + alarm volume at max.",
+                "5. If nothing works, this phone blocks it. The cloud mode (Twilio, see README) always works with clean audio.",
+            ).forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+        }
+
         // ---------- voices ----------
         SectionCard("Voices", Icons.Filled.Settings) {
+            Hint("Pick the voice for each language (try a male one for a call-centre agent) and tap Test.")
+            listOf("ta" to "Tamil", "si" to "Sinhala", "en" to "English").forEach { (code, name) ->
+                VoicePicker(voice, code, name, tick + refresh)
+            }
+            HorizontalDivider()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(voiceStatus, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = { refresh++ }) { Icon(Icons.Filled.Refresh, "Re-check") }
@@ -273,4 +294,50 @@ private fun saveToDownloadsQuiet(ctx: android.content.Context, file: File, name:
     }
     val uri = ctx.contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return
     ctx.contentResolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } }
+}
+
+
+@Composable
+private fun VoicePicker(voice: LocalVoice, lang: String, langName: String, tick: Int) {
+    val ctx = LocalContext.current
+    var names by remember { mutableStateOf<List<String>>(emptyList()) }
+    var chosen by remember { mutableStateOf(Prefs.voiceName(ctx, lang)) }
+    var testing by remember { mutableStateOf(false) }
+    LaunchedEffect(tick) { names = withContext(Dispatchers.IO) { voice.voices(lang) } }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(langName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            TextButton(enabled = !testing, onClick = {
+                testing = true
+                Thread {
+                    try {
+                        val f = File.createTempFile("vtest", ".wav", ctx.cacheDir)
+                        val sample = lk.kathir.callagent.Phrases.languageMenu(lang)
+                        if (voice.synthesize(sample, lang, f)) lk.kathir.callagent.Player(ctx)
+                            .play(f.readBytes(), android.media.AudioAttributes.USAGE_MEDIA)
+                        else AppLog.e("No $langName voice: install it in Text-to-speech settings")
+                        f.delete()
+                    } catch (e: Exception) { AppLog.e("Voice test failed: $e") }
+                    testing = false
+                }.start()
+            }) { Text(if (testing) "Playing…" else "▶ Test") }
+        }
+        if (names.isEmpty()) {
+            Hint("No $langName voice installed yet.")
+        } else {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(selected = chosen.isEmpty(), onClick = { chosen = ""; Prefs.setStr(ctx, "voice_$lang", "") },
+                    label = { Text("Default") })
+                names.forEachIndexed { i, n ->
+                    val online = n.contains("network", ignoreCase = true)
+                    FilterChip(
+                        selected = chosen == n,
+                        onClick = { chosen = n; Prefs.setStr(ctx, "voice_$lang", n) },
+                        label = { Text("Voice ${i + 1}" + if (online) " · online" else "") },
+                    )
+                }
+            }
+        }
+    }
 }

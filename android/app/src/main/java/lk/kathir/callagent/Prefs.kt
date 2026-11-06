@@ -9,26 +9,31 @@ object Prefs {
     private fun sp(c: Context) = c.getSharedPreferences("call_agent", Context.MODE_PRIVATE)
 
     /** Playback options for the AI voice. Which one the caller hears best depends on the phone model. */
-    val PLAYBACK_NAMES = arrayOf("Media", "Alarm", "Voice call", "Assistant")
+    // Index 0 = "Direct to call": send the voice straight into the call line where the phone allows it
+    // (TYPE_TELEPHONY output), else falls back to the loud Alarm stream on the speaker.
+    val PLAYBACK_NAMES = arrayOf("Direct to call", "Alarm", "Media", "Voice call", "Assistant")
     private val PLAYBACK_USAGES = intArrayOf(
-        AudioAttributes.USAGE_MEDIA,
+        AudioAttributes.USAGE_VOICE_COMMUNICATION,
         AudioAttributes.USAGE_ALARM,
+        AudioAttributes.USAGE_MEDIA,
         AudioAttributes.USAGE_VOICE_COMMUNICATION,
         AudioAttributes.USAGE_ASSISTANT,
     )
     private val PLAYBACK_STREAMS = intArrayOf(
-        AudioManager.STREAM_MUSIC,
+        AudioManager.STREAM_VOICE_CALL,
         AudioManager.STREAM_ALARM,
+        AudioManager.STREAM_MUSIC,
         AudioManager.STREAM_VOICE_CALL,
         AudioManager.STREAM_MUSIC,
     )
+    fun playbackDirect(c: Context): Boolean = playbackIndex(c) == 0
 
     fun serverUrl(c: Context): String = sp(c).getString("url", "")!!.trim().trimEnd('/')
     fun agentKey(c: Context): String = sp(c).getString("key", "")!!.trim()
     fun enabled(c: Context): Boolean = sp(c).getBoolean("enabled", false)
     fun delaySec(c: Context): Int = sp(c).getInt("delay", 10)
     fun silenceMs(c: Context): Int = sp(c).getInt("silence_ms", 1000)
-    fun playbackIndex(c: Context): Int = sp(c).getInt("playback", 0).coerceIn(0, PLAYBACK_NAMES.size - 1)
+    fun playbackIndex(c: Context): Int = sp(c).getInt("playback2", 0).coerceIn(0, PLAYBACK_NAMES.size - 1)
     fun playbackUsage(c: Context): Int = PLAYBACK_USAGES[playbackIndex(c)]
     fun playbackStream(c: Context): Int = PLAYBACK_STREAMS[playbackIndex(c)]
 
@@ -50,6 +55,8 @@ object Prefs {
     // ---- appearance + agent behaviour (new UI saves each setting immediately) ----
     fun themeMode(c: Context): Int = sp(c).getInt("theme", 0)            // 0 system, 1 light, 2 dark
     fun dynamicColor(c: Context): Boolean = sp(c).getBoolean("dynamic", false)
+    fun agentName(c: Context): String = sp(c).getString("agent_name", "Arun")!!.trim().ifEmpty { "Arun" }
+    fun voiceName(c: Context, lang: String): String = sp(c).getString("voice_$lang", "")!!
     fun recordCalls(c: Context): Boolean = sp(c).getBoolean("record", true)
     const val DEFAULT_QUESTIONS = "Caller's name\nReason for the call\nBest number and time to call back\nIs it urgent?"
     fun questions(c: Context): String = sp(c).getString("questions", DEFAULT_QUESTIONS)!!
@@ -76,7 +83,7 @@ object Prefs {
             .putBoolean("enabled", enabled)
             .putInt("delay", delay.coerceIn(0, 60))
             .putInt("silence_ms", silenceMs.coerceIn(400, 3000))
-            .putInt("playback", playback)
+            .putInt("playback2", playback)
             .apply()
     }
 }

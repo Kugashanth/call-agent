@@ -8,6 +8,19 @@ import java.util.UUID
 
 /** Fixed phrases in the three languages (the AI writes everything else). */
 object Phrases {
+    /** Opening language menu: each line is spoken in its own language's voice. */
+    fun languageMenu(lang: String) = when (lang) {
+        "ta" -> "வணக்கம்! தமிழில் பேச, தமிழ் என்று சொல்லுங்கள்."
+        "si" -> "ආයුබෝවන්! සිංහලෙන් කතා කිරීමට, සිංහල කියන්න."
+        else -> "Hello! For English, please say English."
+    }
+
+    fun menuRepeat(lang: String) = when (lang) {
+        "ta" -> "மன்னிக்கவும், கேட்கவில்லை. தமிழ், சிங்களம், அல்லது English என்று சொல்லுங்கள்."
+        "si" -> "සමාවන්න, ඇහුණේ නැහැ. සිංහල, දෙමළ, හෝ English කියන්න."
+        else -> "Sorry, I didn't catch that. Please say Tamil, Sinhala or English."
+    }
+
     fun recordingNotice(lang: String) = when (lang) {
         "ta" -> "இந்த அழைப்பு பதிவு செய்யப்படுகிறது."
         "si" -> "මෙම ඇමතුම පටිගත කෙරේ."
@@ -50,6 +63,7 @@ class StandaloneSession(
     private val usage: Int,
     private val from: String?,
     private val channel: String,
+    private val direct: Boolean = false,
     private val record: () -> ByteArray?,
     private val shouldStop: () -> Boolean,
 ) {
@@ -81,11 +95,12 @@ class StandaloneSession(
         var noInput = 0
         var ended = false
         try {
+            // 1) language menu (Tamil, Sinhala, English), each in its own voice
             for (l in listOf("ta", "si", "en")) {
                 if (shouldStop()) return false
-                val g = Phrases.greeting(l, owner) + if (recordOn) " " + Phrases.recordingNotice(l) else ""
-                speak(g, l)
+                speak(Phrases.languageMenu(l), l)
             }
+            var langChosen = false
             var turns = 0
             while (!shouldStop() && turns < MAX_TURNS) {
                 val wav = record()
@@ -96,10 +111,15 @@ class StandaloneSession(
                 if (t == null || t.heard.isBlank()) {
                     noInput++
                     if (noInput > MAX_NO_INPUT) { speak(Phrases.goodbye(lang), lang); ended = true; break }
-                    speak(if (t != null && t.reply.isNotBlank()) t.reply else Phrases.reprompt(lang), t?.lang ?: lang)
+                    if (!langChosen) {
+                        for (l in listOf("ta", "si", "en")) { if (!shouldStop()) speak(Phrases.menuRepeat(l), l) }
+                    } else {
+                        speak(if (t != null && t.reply.isNotBlank()) t.reply else Phrases.reprompt(lang), t?.lang ?: lang)
+                    }
                     continue
                 }
                 noInput = 0
+                langChosen = true
                 lang = t.lang
                 AppLog.i("Caller [${t.lang}]: ${t.heard}\nAgent: ${t.reply}")
                 call.put("lang", lang)
@@ -151,7 +171,7 @@ class StandaloneSession(
             if (voice.synthesize(text, lang, f)) {
                 val bytes = f.readBytes()
                 if (recordOn) pieces.add(bytes)
-                player.play(bytes, usage)
+                player.play(bytes, usage, direct)
             } else AppLog.e("Could not synthesize speech ($lang)")
         } finally {
             f.delete()

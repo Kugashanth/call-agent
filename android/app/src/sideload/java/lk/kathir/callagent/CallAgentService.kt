@@ -35,8 +35,6 @@ class CallAgentService : AccessibilityService() {
 
     @Volatile private var session: Thread? = null
     @Volatile private var stopFlag = false
-    private var savedVolume = -1
-    private var savedStream = AudioManager.STREAM_MUSIC
 
     private var voice: LocalVoice? = null
 
@@ -183,8 +181,11 @@ class CallAgentService : AccessibilityService() {
             main.post { enableSpeaker() }
             boostVolume(Prefs.playbackStream(this))
             Thread.sleep(600)
+            Player.logDevices(this)
+            if (Prefs.playbackDirect(this)) boostVolume(android.media.AudioManager.STREAM_ALARM)
             val ended = StandaloneSession(
                 ctx = this, voice = v, usage = Prefs.playbackUsage(this), from = number, channel = "phone",
+                direct = Prefs.playbackDirect(this),
                 record = { recorder.record(shouldStop = { stopFlag }, silenceMs = silenceMs) },
                 shouldStop = { stopFlag },
             ).run()
@@ -235,19 +236,20 @@ class CallAgentService : AccessibilityService() {
         return false
     }
 
+    private val savedVolumes = mutableMapOf<Int, Int>()
+
     private fun boostVolume(stream: Int) {
         try {
-            savedStream = stream
-            savedVolume = audio.getStreamVolume(stream)
+            if (stream !in savedVolumes) savedVolumes[stream] = audio.getStreamVolume(stream)
             audio.setStreamVolume(stream, audio.getStreamMaxVolume(stream), 0)
-        } catch (e: Exception) {
-            savedVolume = -1
-        }
+        } catch (e: Exception) {}
     }
 
     private fun restoreVolume() {
-        if (savedVolume < 0) return
-        try { audio.setStreamVolume(savedStream, savedVolume, 0) } catch (e: Exception) {}
-        savedVolume = -1
+        for ((stream, v) in savedVolumes) {
+            try { audio.setStreamVolume(stream, v, 0) } catch (e: Exception) {}
+        }
+        savedVolumes.clear()
     }
+
 }

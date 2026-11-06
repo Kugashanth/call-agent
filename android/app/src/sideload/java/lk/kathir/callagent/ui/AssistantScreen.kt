@@ -44,6 +44,7 @@ import lk.kathir.callagent.Prefs
 fun AssistantScreen() {
     val ctx = LocalContext.current
     var owner by remember { mutableStateOf(Prefs.ownerName(ctx)) }
+    var agent by remember { mutableStateOf(Prefs.agentName(ctx)) }
     val questions = remember {
         mutableStateListOf<String>().apply { addAll(Prefs.questions(ctx).lines().filter { it.isNotBlank() }) }
     }
@@ -64,13 +65,19 @@ fun AssistantScreen() {
                 onValueChange = { owner = it; Prefs.setStr(ctx, "owner", it.trim()) },
                 label = { Text("Your name") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
-            Hint("Callers first hear:")
+            OutlinedTextField(
+                value = agent,
+                onValueChange = { agent = it.take(30); Prefs.setStr(ctx, "agent_name", it.trim()) },
+                label = { Text("Agent's name") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("A polite call-centre agent who answers for you, e.g. Arun") },
+            )
+            Hint("Callers first hear the language menu:")
             Surface(color = cs.primaryContainer, shape = MaterialTheme.shapes.medium) {
                 Text(
-                    listOf("ta", "si", "en").joinToString("\n") {
-                        Phrases.greeting(it, owner.ifBlank { "Kathir" }) +
-                            if (Prefs.recordCalls(ctx)) " " + Phrases.recordingNotice(it) else ""
-                    },
+                    listOf("ta", "si", "en").joinToString("\n") { Phrases.languageMenu(it) } +
+                        "\n\nThen, in their language: \"Thank you! I'm ${agent.ifBlank { "Arun" }}, " +
+                        "${owner.ifBlank { "Kathir" }}'s AI assistant." +
+                        (if (Prefs.recordCalls(ctx)) " This call is recorded." else "") + " How may I help you today?\"",
                     color = cs.onPrimaryContainer, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(12.dp),
                 )
